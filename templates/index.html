@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Image Converter</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Image Converter</h1>
+        <div class="converter-box">
+            <input type="file" id="fileInput" accept="image/*">
+            <select id="targetFormat">
+                <option value="">Select Format</option>
+                <option value="JPEG">JPG</option>
+                <option value="PNG">PNG</option>
+                <option value="GIF">GIF</option>
+                <option value="WEBP">WebP</option>
+                <option value="BMP">BMP</option>
+            </select>
+            <button id="convertBtn">Convert</button>
+            <div id="result"></div>
+        </div>
+    </div>
+    <script>
+        document.getElementById('convertBtn').addEventListener('click', async () => {
+            const fileInput = document.getElementById('fileInput');
+            const targetFormat = document.getElementById('targetFormat').value;
+            const resultDiv = document.getElementById('result');
+
+            if (!fileInput.files[0] || !targetFormat) {
+                resultDiv.innerHTML = '<p class="error">Please select both a file and target format!</p>';
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            formData.append('target_format', targetFormat);
+
+            try {
+                const response = await fetch('/convert', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error);
+                }
+
+                const blob = await response.blob();
+                const downloadUrl = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                a.download = `converted_image.${targetFormat.toLowerCase()}`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(downloadUrl);
+                document.body.removeChild(a);
+                resultDiv.innerHTML = '<p class="success">Conversion successful! Download started.</p>';
+            } catch (error) {
+                resultDiv.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+            }
+        });
+    </script>
+</body>
+</html>
